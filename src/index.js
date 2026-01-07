@@ -730,33 +730,41 @@ function toSPARQL() {
  */
 function addTriples(triples) {
     triples.forEach((triple) => {
-        const subPos = getNewPosition(triple.domain.uri);
-        const subject = {
-            id: triple.domain.uri,
-            name: triple.domain.label,
-            label: triple.domain.uri + "\n" + triple.domain.label,
-            x: subPos.x,
-            y: subPos.y,
-            vx: 0,
-            vy: 0,
-            selected: false,
-            type: "box",
-        };
-        boxes.push(subject);
+        const subjectLabel = triple.domain.uri + "\n" + triple.domain.label;
+        let subject = boxes.find((box) => box.label == subjectLabel);
+        if (subject == undefined || subjectLabel.startsWith("xsd:")) {
+            const subPos = getNewPosition(triple.domain.uri);
+            subject = {
+                id: triple.domain.uri,
+                name: triple.domain.label,
+                label: subjectLabel,
+                x: subPos.x,
+                y: subPos.y,
+                vx: 0,
+                vy: 0,
+                selected: false,
+                type: "box",
+            };
+            boxes.push(subject);
+        }
 
-        const objPos = getNewPosition(triple.range.uri);
-        const object = {
-            id: triple.range.uri,
-            name: triple.range.label,
-            label: triple.range.uri + "\n" + triple.range.label,
-            x: objPos.x,
-            y: objPos.y,
-            vx: 0,
-            vy: 0,
-            selected: false,
-            type: "box",
-        };
-        boxes.push(object);
+        const objectLabel = triple.range.uri + "\n" + triple.range.label;
+        let object = boxes.find((box) => box.label == objectLabel);
+        if (object == undefined || objectLabel.startsWith("xsd:")) {
+            const subPos = getNewPosition(triple.range.uri);
+            object = {
+                id: triple.range.uri,
+                name: triple.range.label,
+                label: objectLabel,
+                x: subPos.x,
+                y: subPos.y,
+                vx: 0,
+                vy: 0,
+                selected: false,
+                type: "box",
+            };
+            boxes.push(object);
+        }
 
         let cardinality;
         if (triple.min_count == undefined && triple.max_count == undefined) cardinality = "0..n";
