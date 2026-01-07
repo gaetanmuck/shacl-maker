@@ -730,13 +730,13 @@ function toSPARQL() {
  */
 function addTriples(triples) {
     triples.forEach((triple) => {
-        const { subX, subY } = getNewPosition(triple.domain.uri);
+        const subPos = getNewPosition(triple.domain.uri);
         const subject = {
             id: triple.domain.uri,
-            name: triple.domain.name,
-            label: triple.domain.uri + "\n" + triple.domain.name,
-            x: subX,
-            y: subY,
+            name: triple.domain.label,
+            label: triple.domain.uri + "\n" + triple.domain.label,
+            x: subPos.x,
+            y: subPos.y,
             vx: 0,
             vy: 0,
             selected: false,
@@ -744,13 +744,13 @@ function addTriples(triples) {
         };
         boxes.push(subject);
 
-        const { objX, objY } = getNewPosition(triple.range.uri);
+        const objPos = getNewPosition(triple.range.uri);
         const object = {
             id: triple.range.uri,
-            name: triple.range.name,
-            label: triple.range.uri + "\n" + triple.range.name,
-            x: objX,
-            y: objY,
+            name: triple.range.label,
+            label: triple.range.uri + "\n" + triple.range.label,
+            x: objPos.x,
+            y: objPos.y,
             vx: 0,
             vy: 0,
             selected: false,
@@ -778,6 +778,8 @@ function addTriples(triples) {
         };
         links.push(predicate);
     });
+
+    draw();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
