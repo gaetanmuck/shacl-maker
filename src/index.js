@@ -384,6 +384,8 @@ function drawCanvas() {
     // Handle transformation (zoom and world move)
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#888";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
 
     // Draw all links
