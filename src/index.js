@@ -729,64 +729,116 @@ function toSPARQL() {
  * @param {*} triples The list of triples to add to the chart
  */
 function addTriples(triples) {
-    // Find all unique boxes
-    const rawBoxes = triples
-        .map((triple) => {
-            let id, name, label;
-            id = triple.subject.id;
-            name = triple.subject.name;
-            label = id + "\n" + name;
-            const box1 = { id, name, label };
-            id = triple.object.id;
-            name = triple.object.name;
-            label = id + "\n" + name;
-            const box2 = { id, name, label };
-            return [box1, box2];
-        })
-        .flat();
-    const boxesToAdd = {};
-    rawBoxes.forEach((rawBox) => {
-        boxesToAdd[rawBox.label] = rawBox;
-    });
-
-    // Those are the unique boxes
-    const newBoxes = Object.values(boxesToAdd);
-
-    // Add the coodinates attributes
-    newBoxes.forEach((box) => {
-        const position = getNewPosition(box.label);
-        box.x = position.x;
-        box.y = position.y;
-        box.vx = 0;
-        box.vy = 0;
-        box.selected = false;
-        box.type = "box";
-    });
-
-    // Add the new boxes to main list
-    boxes.push(...newBoxes);
-
-    // Create new links
-    const newLinks = [];
     triples.forEach((triple) => {
-        // find subject and object
-        const subject = newBoxes.find((box) => box.id == triple.subject.id && box.name == triple.subject.name);
-        const object = newBoxes.find((box) => box.id == triple.object.id && box.name == triple.object.name);
-        const newLink = { subject, object };
-        newLink.id = triple.predicate.id;
-        newLink.predicate = triple.predicate.name;
-        newLink.cardinality = "";
-        newLink.order = "";
-        newLink.label = "";
-        newLink.selected = false;
-        newLink.type = "link";
-        newLinks.push(newLink);
+        const { subX, subY } = getNewPosition(triple.domain.uri);
+        const subject = {
+            id: triple.domain.uri,
+            name: triple.domain.name,
+            label: triple.domain.uri + "\n" + triple.domain.name,
+            x: subX,
+            y: subY,
+            vx: 0,
+            vy: 0,
+            selected: false,
+            type: "box",
+        };
+        const { objX, objY } = getNewPosition(triple.range.uri);
+        const object = {
+            id: triple.range.uri,
+            name: triple.range.name,
+            label: triple.range.uri + "\n" + triple.range.name,
+            x: objX,
+            y: objY,
+            vx: 0,
+            vy: 0,
+            selected: false,
+            type: "box",
+        };
+
+        let cardinality;
+        if (triple.min_count == undefined && triple.max_count == undefined) cardinality = "0..n";
+        if (triple.min_count == undefined && triple.max_count != undefined) cardinality = "0.." + triple.max_count;
+        if (triple.min_count != undefined && triple.max_count == undefined) cardinality = triple.min_count + "..n";
+        if (triple.min_count != undefined && triple.max_count != undefined && triple.min_count != triple.max_count)
+            cardinality = triple.min_count + ".." + triple.max_count;
+        if (triple.min_count != undefined && triple.max_count != undefined && triple.min_count == triple.max_count) cardinality = triple.max_count;
+        const predicate = {
+            subject,
+            object,
+            id: triple.uri,
+            predicate: triple.label,
+            cardinality: cardinality,
+            order: triple.order,
+            label: "",
+            selected: false,
+            type: "link",
+        };
+
+        boxes.push(subject);
+        boxes.push(object);
+        links.push(predicate);
     });
 
-    // Add the new links to main list
-    links.push(...newLinks);
+    // Find all unique boxes
+    // const rawBoxes = triples
+    //     .map((triple) => {
+    //         let id, name, label;
+    //         id = triple.subject.id;
+    //         name = triple.subject.name;
+    //         label = id + "\n" + name;
+    //         const box1 = { id, name, label };
+    //         id = triple.object.id;
+    //         name = triple.object.name;
+    //         label = id + "\n" + name;
+    //         const box2 = { id, name, label };
+    //         return [box1, box2];
+    //     })
+    //     .flat();
+    // // const boxesToAdd = {};
+    // // rawBoxes.forEach((rawBox) => {
+    // //     boxesToAdd[rawBox.label] = rawBox;
+    // // });
 
-    draw();
+    // // // Those are the unique boxes
+    // // const newBoxes = Object.values(boxesToAdd);
+
+    // const newBoxes = rawBoxes;
+
+    // // Add the coodinates attributes
+    // newBoxes.forEach((box) => {
+    //     const position = getNewPosition(box.label);
+    //     box.x = position.x;
+    //     box.y = position.y;
+    //     box.vx = 0;
+    //     box.vy = 0;
+    //     box.selected = false;
+    //     box.type = "box";
+    // });
+
+    // // Add the new boxes to main list
+    // boxes.push(...newBoxes);
+
+    // // Create new links
+    // const newLinks = [];
+    // triples.forEach((triple) => {
+    //     // find subject and object
+    //     const subject = newBoxes.find((box) => box.id == triple.subject.id && box.name == triple.subject.name);
+    //     const object = newBoxes.find((box) => box.id == triple.object.id && box.name == triple.object.name);
+    //     const newLink = { subject, object };
+    //     newLink.id = triple.predicate.id;
+    //     newLink.predicate = triple.predicate.name;
+    //     newLink.cardinality = "";
+    //     newLink.order = "";
+    //     newLink.label = "";
+    //     newLink.selected = false;
+    //     newLink.type = "link";
+    //     newLinks.push(newLink);
+    // });
+
+    // // Add the new links to main list
+    // links.push(...newLinks);
+
+    // draw();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
