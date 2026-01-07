@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <canvas id="canvas-shacl-maker" width="1600" height="700" tabindex="0" style="border: 1px solid black"></canvas>
+
+        <script type="module">
+            import drawer from "../src/index.js";
+            const canvas = document.getElementById("canvas-shacl-maker");
+            drawer.setCanvas(canvas);
+
+            const triples = [
+                {
+                    subject: { id: "crm:E21", name: "Person" },
+                    predicate: { id: "rdfs:label", name: "has name" },
+                    object: { id: "xsd:String", name: "Text" },
+                },
+                {
+                    subject: { id: "crm:E67", name: "Birth" },
+                    predicate: { id: "crm:P98", name: "brought into life" },
+                    object: { id: "crm:E21", name: "Person" },
+                },
+                {
+                    subject: { id: "crm:E67", name: "Birth" },
+                    predicate: { id: "crm:P82", name: "at some time within" },
+                    object: { id: "xsd:datetime", name: "Date" },
+                },
+                {
+                    subject: { id: "crm:E67", name: "Birth" },
+                    predicate: { id: "sdh:P6", name: "took place at" },
+                    object: { id: "sdh:C13", name: "Geographical place" },
+                },
+            ];
+
+            drawer.addTriples(triples);
+        </script>
+    </body>
+</html>

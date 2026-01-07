@@ -1,0 +1,17 @@
+{
+  "name": "shacl-maker",
+  "version": "1.0.0",
+  "description": "Interactive SHACL maker",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gaetanmuck/shacl-maker.git"
+  },
+  "author": "Gaétan Muck",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gaetanmuck/shacl-maker/issues"
+  },
+  "homepage": "https://github.com/gaetanmuck/shacl-maker#readme"
+}
