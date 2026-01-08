@@ -159,15 +159,17 @@ function resetSelection(only = undefined) {
  * @returns
  */
 function findClickedBoxes(x, y) {
-    return boxes.filter((box) => {
-        const minX = box.x - boxWidth / 2;
-        const maxX = minX + boxWidth;
-        const minY = box.y - boxHeight / 2;
-        const maxY = minY + boxHeight;
+    return boxes
+        .filter((box) => {
+            const minX = box.x - boxWidth / 2;
+            const maxX = minX + boxWidth;
+            const minY = box.y - boxHeight / 2;
+            const maxY = minY + boxHeight;
 
-        // If the click is inside the rectangle, keep it
-        return minX <= x && x <= maxX && minY <= y && y <= maxY;
-    });
+            // If the click is inside the rectangle, keep it
+            return minX <= x && x <= maxX && minY <= y && y <= maxY;
+        })
+        .slice(0, 1);
 }
 
 /**
@@ -498,7 +500,7 @@ function drawLink(link) {
     // In order to make it along the link, there is the need to translate the origin, rotate to the right angle,
     // That is the reason for the save/restore use: we want to have origin correclty again after drawing
     ctx.save();
-    ctx.translate((link.subject.x + link.object.x) / 2, (link.subject.y + link.object.y) / 2 + 20);
+    ctx.translate((link.subject.x + link.object.x) / 2, (link.subject.y + link.object.y) / 2);
     ctx.rotate(alpha1 + (link.subject.x > link.object.x ? Math.PI : 0));
     let text = "";
     if (link.selected) text = link.label;
@@ -506,7 +508,7 @@ function drawLink(link) {
         let suffix = !link.cardinality || !link.order || !link.id || !link.predicate ? " ?" : "";
         text = link.predicate + suffix;
     }
-    ctx.fillText(text, 0, 0);
+    ctx.fillText(text, 0, 20);
     ctx.restore();
 }
 
