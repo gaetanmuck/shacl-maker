@@ -356,6 +356,31 @@ function getNewPosition(label) {
     return { x, y };
 }
 
+/**
+ * Functions that determines a zoom and offset so that every boxes are displayed
+ */
+function fitZoom() {
+    // Find the objects rectangle
+    const minX = Math.min(...boxes.map((box) => box.x));
+    const maxX = Math.max(...boxes.map((box) => box.x));
+    const minY = Math.min(...boxes.map((box) => box.y));
+    const maxY = Math.max(...boxes.map((box) => box.y));
+
+    // Compute objects widths and heights
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+
+    // Calculate the appropriate scale between horizontal and vertical
+    scale = Math.min(canvas.width / contentWidth, canvas.height / contentHeight);
+    scale *= 0.9; // Add a margin around
+
+    // Compute offset to center the content
+    offsetX = (canvas.width - contentWidth * scale) / 2 - minX * scale;
+    offsetY = (canvas.height - contentHeight * scale) / 2 - minY * scale;
+
+    draw();
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////// DRAWING FUNCTIONS /////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -601,11 +626,13 @@ function calcBoxesRepulsion() {
 function calcLinkAttraction() {
     links.forEach((link) => {
         const dist = getElementDist(link.subject, link.object);
+        if (dist == 0) return;
         const force = linksAttraction * (dist - linksRestLength);
         const dx = link.subject.x - link.object.x;
         const dy = link.subject.y - link.object.y;
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
+
         link.subject.vx -= fx;
         link.subject.vy -= fy;
         link.object.vx += fx;
@@ -974,6 +1001,8 @@ function keydownHandler(evt) {
         if (evt.key == "r") MODE = CREATE_LINK;
         // Log the sparql
         if (evt.key == "P") console.log(toSPARQL());
+        // Fit the zoom
+        if (evt.key == "z") fitZoom();
     } else {
         // If something is selected and Backspace: remove a character from the label
         if (evt.key === "Backspace")
