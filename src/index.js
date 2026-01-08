@@ -14,6 +14,7 @@ let textLineHeight = 16;
 let cursorPosWorld = { x: 0, y: 0 }; // Cursor position in the world
 let cursorPosCanvas = { x: 0, y: 0 }; // Cursor position in the canvas
 let mousedownPos = { ...cursorPosWorld }; // Last cursor position on mouse down; usefull to check if click or drag
+let hashSalt = 0;
 
 // Modes
 const DEFAULT = "default";
@@ -109,8 +110,10 @@ function getElementDist(elt1, elt2) {
 function hash(str, min, max) {
     // FNV-1a 32-bit hash
     let hash = 0x811c9dc5;
-    for (let i = 0; i < str.length; i++) {
-        hash ^= str.charCodeAt(i);
+    let str2 = str + "" + hashSalt;
+    hashSalt++;
+    for (let i = 0; i < str2.length; i++) {
+        hash ^= str2.charCodeAt(i);
         hash = Math.imul(hash, 0x01000193);
     }
 
