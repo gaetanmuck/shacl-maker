@@ -32,11 +32,11 @@ let offsetX = 0;
 let offsetY = 0;
 
 // Physic constants
-const boxesRepulsion = 100000;
-const linksAttraction = 0.01;
+const boxesRepulsion = 200000;
+const linksAttraction = 0.02;
 const linksRestLength = 500;
-const speedLimit = 0.1;
-const velocityDamping = 0.1;
+const speedLimit = 0.2;
+const velocityDamping = 0.05;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////// TOOLING FUNCTIONS /////////////////////////////////////
@@ -308,13 +308,10 @@ function parseLinkFromLabel(link) {
 }
 
 /**
- * Find a position for the given box, by hashing its label
  *
- * @param {*} label The box label
- * @returns the position as { x, y } of the box
+ * @returns min and max for horizontal and vertical
  */
-function getNewPosition(label) {
-    // Find current mins and maxes
+function findBoundaries() {
     let minX = Math.min(...boxes.map((box) => box.x));
     let maxX = Math.max(...boxes.map((box) => box.x));
     let minY = Math.min(...boxes.map((box) => box.y));
@@ -326,6 +323,16 @@ function getNewPosition(label) {
     if (Number.isNaN(minY) || minY == Infinity || minY == maxY) minY = 0;
     if (Number.isNaN(maxY) || maxY == -Infinity || minY == maxY) maxY = canvas.height;
 
+    return { minX, maxX, minY, maxY };
+}
+
+/**
+ * Find a position for the given box, by hashing its label
+ *
+ * @param {*} label The box label
+ * @returns the position as { x, y } of the box
+ */
+function getNewPosition(label, minX, maxX, minY, maxY) {
     // We want the new points not to be place at the limit, but a bit further
     const width = maxX - minX;
     const height = maxY - minY;
@@ -756,11 +763,13 @@ function toSPARQL() {
  * @param {*} triples The list of triples to add to the chart
  */
 function addTriples(triples) {
+    const boundaries = findBoundaries();
+
     triples.forEach((triple) => {
         const subjectLabel = triple.domain.uri + "\n" + triple.domain.label;
         let subject = boxes.find((box) => box.label == subjectLabel);
         if (subject == undefined || subjectLabel.startsWith("xsd:")) {
-            const subPos = getNewPosition(triple.domain.uri);
+            const subPos = getNewPosition(triple.domain.uri, boundaries.minX, boundaries.maxX, boundaries.minY, boundaries.maxY);
             subject = {
                 id: triple.domain.uri,
                 name: triple.domain.label,
@@ -778,7 +787,7 @@ function addTriples(triples) {
         const objectLabel = triple.range.uri + "\n" + triple.range.label;
         let object = boxes.find((box) => box.label == objectLabel);
         if (object == undefined || objectLabel.startsWith("xsd:")) {
-            const subPos = getNewPosition(triple.range.uri);
+            const subPos = getNewPosition(triple.domain.uri, boundaries.minX, boundaries.maxX, boundaries.minY, boundaries.maxY);
             object = {
                 id: triple.range.uri,
                 name: triple.range.label,
