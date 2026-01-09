@@ -738,7 +738,7 @@ function toSPARQL() {
             // Handling of the cardinality
             // Since the cardinality is the one of the object,
             // It has to be set on the subject property information
-            if (property.cardinality.includes("..")) {
+            if ((property.cardinality + "").includes("..")) {
                 const min = property.cardinality.slice(0, property.cardinality.indexOf(".."));
                 const max = property.cardinality.slice(property.cardinality.indexOf("..") + 2);
                 sparql += `         sh:minCount ${min};\n`;
@@ -829,6 +829,138 @@ function addTriples(triples) {
     });
 
     draw();
+}
+
+/**
+ * Upload a turtle file to a SPARQL endpoint.
+ *
+ * @param {*} endpointTechnology SPARQL endpoint technology: Allegrograph, Fuseki, GraphDB
+ * @param {*} endpointURL URL of the Allegrograph SPARQL endpoint
+ * @param {*} username Username of the account
+ * @param {*} password Password of the account
+ * @param {*} graphURI Name Graph URI to insert turtle in
+ * @param {*} turtleString The actual turtle
+ */
+function uploadTurtle(endpointTechnology, username, password, endpointURL, graphURI) {
+    const turtleString = toSPARQL();
+    if (endpointTechnology.toLowerCase() == "allegrograph") uploadTurtleAllegrograph(endpointURL, username, password, graphURI, turtleString);
+    if (endpointTechnology.toLowerCase() == "fuseki") uploadTurtleFuseki(endpointURL, username, password, graphURI, turtleString);
+    if (endpointTechnology.toLowerCase() == "graphdb") uploadTurtleGraphDB(endpointURL, username, password, graphURI, turtleString);
+}
+
+/**
+ * Upload a turtle file to a Allegrograph SPARQL endpoint.
+ *
+ * @param {*} endpointURL URL of the Allegrograph SPARQL endpoint
+ * @param {*} username Username of the account
+ * @param {*} password Password of the account
+ * @param {*} graphURI Name Graph URI to insert turtle in
+ * @param {*} turtleString The actual turtle
+ */
+async function uploadTurtleAllegrograph(endpointURL, username, password, graphURI, turtleString) {
+    // Prepare URL
+    if (endpointURL.endsWith("/sparql")) endpointURL = endpointURL.replace("/sparql", "");
+    endpointURL += "/statements";
+
+    // Set the Named Graph
+    if (graphURI) {
+        const encodedContext = encodeURIComponent(namedGraphUri).replace(/:/g, "%3A").replace(/\//g, "%2F");
+        endpointURL += `?context=${encodedContext}`;
+    }
+
+    // Build Headers
+    const headers = {
+        "Content-Type": "text/turtle",
+        Authorization: "Basic " + Buffer.from(`${username}:${password}`).toString("base64"),
+    };
+
+    // Make the POST request
+    const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: turtleString,
+    });
+
+    // Error management
+    if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+    }
+}
+
+/**
+ * Upload a turtle file to a Fuseki SPARQL endpoint.
+ *
+ * @param {*} endpointURL URL of the Fuseki SPARQL endpoint
+ * @param {*} username Username of the account
+ * @param {*} password Password of the account
+ * @param {*} graphURI Name Graph URI to insert turtle in
+ * @param {*} turtleString The actual turtle
+ */
+async function uploadTurtleFuseki(endpointURL, username, password, graphURI, turtleString) {
+    // Build URL
+    const url = graphURI ? `${endpointURL}/data?graph=${encodeURIComponent(graphURI)}` : `${url}/data`;
+
+    // Build headers
+    const headers = {
+        "Content-Type": "text/turtle",
+        Authorization: "Basic " + Buffer.from(`${username}:${password}`).toString("base64"),
+    };
+
+    // Make the POST request
+    const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: turtleString,
+    });
+
+    // Error management
+    if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+    }
+}
+
+/**
+ * Upload a turtle file to a GraphDB SPARQL endpoint.
+ *
+ * @param {*} endpointURL URL of the GraphDB SPARQL endpoint
+ * @param {*} username Username of the account
+ * @param {*} password Password of the account
+ * @param {*} graphURI Name Graph URI to insert turtle in
+ * @param {*} turtleString The actual turtle
+ */
+async function uploadTurtleGraphDB(endpointURL, username, password, graphURI, turtleString) {
+    // Prepare URL
+    let url = endpointURL;
+    if (url.endsWith("/sparql")) url = url.replace("/sparql", "");
+    url += "/statement";
+
+    // Set the named graph
+    if (namedGraphUri) {
+        const encodedContext = encodeURIComponent(namedGraphUri);
+        url += `?context=${encodedContext}`;
+    }
+
+    // Basic Auth header
+    const authHeader = "Basic " + btoa(`${username}:${password}`);
+
+    // Build header
+    const headers = {
+        "Content-Type": "text/turtle",
+        Authorization: authHeader,
+    };
+
+    // Mais the POST request
+    const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: turtleContent,
+    });
+
+    // Error handling
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${text}`);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1075,4 +1207,5 @@ export default {
     draw,
     toSPARQL,
     addTriples,
+    uploadTurtle,
 };
