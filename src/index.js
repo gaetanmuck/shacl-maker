@@ -839,10 +839,10 @@ function addTriples(triples) {
  * @param {*} username Username of the account
  * @param {*} password Password of the account
  * @param {*} graphURI Name Graph URI to insert turtle in
- * @param {*} turtleString The actual turtle
+ * @param {*} prefixes The list of prefixes to use
  */
-function uploadTurtle(endpointTechnology, username, password, endpointURL, graphURI) {
-    const turtleString = toSPARQL();
+function uploadTurtle(endpointTechnology, username, password, endpointURL, graphURI, prefixes) {
+    const turtleString = prefixes.join("\n") + toSPARQL();
     if (endpointTechnology.toLowerCase() == "allegrograph") uploadTurtleAllegrograph(endpointURL, username, password, graphURI, turtleString);
     if (endpointTechnology.toLowerCase() == "fuseki") uploadTurtleFuseki(endpointURL, username, password, graphURI, turtleString);
     if (endpointTechnology.toLowerCase() == "graphdb") uploadTurtleGraphDB(endpointURL, username, password, graphURI, turtleString);
@@ -871,7 +871,7 @@ async function uploadTurtleAllegrograph(endpointURL, username, password, graphUR
     // Build Headers
     const headers = {
         "Content-Type": "text/turtle",
-        Authorization: "Basic " + Buffer.from(`${username}:${password}`).toString("base64"),
+        Authorization: "Basic " + btoa(`${username}:${password}`),
     };
 
     // Make the POST request
@@ -903,7 +903,7 @@ async function uploadTurtleFuseki(endpointURL, username, password, graphURI, tur
     // Build headers
     const headers = {
         "Content-Type": "text/turtle",
-        Authorization: "Basic " + Buffer.from(`${username}:${password}`).toString("base64"),
+        Authorization: "Basic " + btoa(`${username}:${password}`),
     };
 
     // Make the POST request
