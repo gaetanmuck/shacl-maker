@@ -842,7 +842,7 @@ function addTriples(triples) {
  * @param {*} prefixes The list of prefixes to use
  */
 function uploadTurtle(endpointTechnology, username, password, endpointURL, graphURI, prefixes) {
-    const turtleString = prefixes.join("\n") + toSPARQL();
+    const turtleString = prefixes + toSPARQL();
     if (endpointTechnology.toLowerCase() == "allegrograph") uploadTurtleAllegrograph(endpointURL, username, password, graphURI, turtleString);
     if (endpointTechnology.toLowerCase() == "fuseki") uploadTurtleFuseki(endpointURL, username, password, graphURI, turtleString);
     if (endpointTechnology.toLowerCase() == "graphdb") uploadTurtleGraphDB(endpointURL, username, password, graphURI, turtleString);
@@ -883,7 +883,14 @@ async function uploadTurtleAllegrograph(endpointURL, username, password, graphUR
 
     // Error management
     if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+        const errorText = await response.text();
+
+        if (errorText.includes("[line:") && errorText.includes("col:")) {
+            const lines = turtleString.split("/n");
+            const lineNb = parseInt(errorText.slice(errorText.indexOf("[line: " + 7), errorText.indexOf(", col: ")));
+            console.log(turtleString);
+            alert("Error in the following line while parsing SHACL string:\n" + lines[lineNb]);
+        } else throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
     }
 }
 
@@ -915,7 +922,14 @@ async function uploadTurtleFuseki(endpointURL, username, password, graphURI, tur
 
     // Error management
     if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+        const errorText = await response.text();
+
+        if (errorText.includes("[line:") && errorText.includes("col:")) {
+            const lines = turtleString.split("/n");
+            const lineNb = parseInt(errorText.slice(errorText.indexOf("[line: " + 7), errorText.indexOf(", col: ")));
+            console.log(turtleString);
+            alert("Error in the following line while parsing SHACL string:\n" + lines[lineNb]);
+        } else throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
     }
 }
 
@@ -935,8 +949,8 @@ async function uploadTurtleGraphDB(endpointURL, username, password, graphURI, tu
     url += "/statement";
 
     // Set the named graph
-    if (namedGraphUri) {
-        const encodedContext = encodeURIComponent(namedGraphUri);
+    if (graphURI) {
+        const encodedContext = encodeURIComponent(graphURI);
         url += `?context=${encodedContext}`;
     }
 
@@ -953,13 +967,19 @@ async function uploadTurtleGraphDB(endpointURL, username, password, graphURI, tu
     const response = await fetch(url, {
         method: "POST",
         headers,
-        body: turtleContent,
+        body: turtleString,
     });
 
-    // Error handling
+    // Error management
     if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`HTTP ${response.status}: ${text}`);
+        const errorText = await response.text();
+
+        if (errorText.includes("[line:") && errorText.includes("col:")) {
+            const lines = turtleString.split("/n");
+            const lineNb = parseInt(errorText.slice(errorText.indexOf("[line: " + 7), errorText.indexOf(", col: ")));
+            console.log(turtleString);
+            alert("Error in the following line while parsing SHACL string:\n" + lines[lineNb]);
+        } else throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
     }
 }
 
