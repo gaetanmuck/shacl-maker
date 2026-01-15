@@ -1,43 +1,43 @@
 // The canvas and its context
-let canvas, ctx;
+var canvas, ctx;
 
 // Elements of the canvas
-let boxes = [];
-let links = [];
+var boxes = [];
+var links = [];
 
 // Global parameters
-const boxWidth = 200;
-const boxHeight = 75;
-let textLineHeight = 16;
+var boxWidth = 200;
+var boxHeight = 75;
+var textLineHeight = 16;
 
 // Parameters
-let cursorPosWorld = { x: 0, y: 0 }; // Cursor position in the world
-let cursorPosCanvas = { x: 0, y: 0 }; // Cursor position in the canvas
-let mousedownPos = { ...cursorPosWorld }; // Last cursor position on mouse down; usefull to check if click or drag
-let hashSalt = 0;
+var cursorPosWorld = { x: 0, y: 0 }; // Cursor position in the world
+var cursorPosCanvas = { x: 0, y: 0 }; // Cursor position in the canvas
+var mousedownPos = { ...cursorPosWorld }; // Last cursor position on mouse down; usefull to check if click or drag
+var hashSalt = 0;
 
 // Modes
-const DEFAULT = "default";
-const DRAGGING = "dragging";
-const GLOBAL_DRAGGING = "global dragging";
-const CREATE_LINK = "create link";
-const PHYSICS = "physics";
-let MODE = DEFAULT;
-let beginPos = undefined;
-let createLinkSubject = undefined;
-let createLinkObject = undefined;
+var DEFAULT = "default";
+var DRAGGING = "dragging";
+var GLOBAL_DRAGGING = "global dragging";
+var CREATE_LINK = "create link";
+var PHYSICS = "physics";
+var MODE = DEFAULT;
+var beginPos = undefined;
+var createLinkSubject = undefined;
+var createLinkObject = undefined;
 
 // Zoom + global dragging
-let scale = 1;
-let offsetX = 0;
-let offsetY = 0;
+var scale = 1;
+var offsetX = 0;
+var offsetY = 0;
 
 // Physic constants
-const boxesRepulsion = 200000;
-const linksAttraction = 0.02;
-const linksRestLength = 500;
-const speedLimit = 0.2;
-const velocityDamping = 0.05;
+var boxesRepulsion = 200000;
+var linksAttraction = 0.02;
+var linksRestLength = 500;
+var speedLimit = 0.2;
+var velocityDamping = 0.05;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////// TOOLING FUNCTIONS /////////////////////////////////////
@@ -50,7 +50,12 @@ const velocityDamping = 0.05;
  * @returns The camel case version of the given string.
  */
 function toCamelCase(str) {
-    return str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase());
+    return str
+        .replace(/[^\p{L}\p{N}]+/gu, " ")
+        .trim()
+        .split(/\s+/)
+        .map((word) => word[0].toUpperCase() + word.slice(1))
+        .join("");
 }
 
 /**
@@ -301,12 +306,12 @@ function parseLinkFromLabel(link) {
             link.cardinality = chunk.replace("card:", "").trim();
             // link.label = "";
         }
-        if (chunk.includes("id:")) {
-            link.id = chunk.replace("id:", "").trim();
+        if (chunk.includes("uri:")) {
+            link.id = chunk.replace("uri:", "").trim();
             // link.label = "";
         }
-        if (chunk.includes("pred:")) {
-            link.predicate = chunk.replace("pred:", "").trim();
+        if (chunk.includes("label:")) {
+            link.predicate = chunk.replace("label:", "").trim();
             // link.label = "";
         }
     }
@@ -577,9 +582,9 @@ function drawSelectedLinksInfos(links) {
 
         text = `Link: ${link.subject.name} - ${link.object.name}`;
         ctx.fillText(text, 10, 130 * i + 10);
-        text = `id: ${link.id}`;
+        text = `uri: ${link.id}`;
         ctx.fillText(text, 10, 130 * i + 10 + 20);
-        text = `pred: ${link.predicate}`;
+        text = `label: ${link.predicate}`;
         ctx.fillText(text, 10, 130 * i + 10 + 40);
         text = `card: ${link.cardinality}`;
         ctx.fillText(text, 10, 130 * i + 10 + 60);
@@ -733,7 +738,7 @@ function toSPARQL() {
             sparql += `         sh:name "${property.predicate}";\n`;
             // Depending on if the range (object) is a value or a class, it is not the same SHACL property: sh:datatype or sh:class
             sparql += `         sh:${property.object.id.includes("xsd") ? "datatype" : "class"} ${property.object.id};\n`;
-            sparql += `         sh:order ${property.order};\n`;
+            if (property.order) sparql += `         sh:order ${property.order};\n`;
 
             // Handling of the cardinality
             // Since the cardinality is the one of the object,
@@ -742,7 +747,7 @@ function toSPARQL() {
                 const min = property.cardinality.slice(0, property.cardinality.indexOf(".."));
                 const max = property.cardinality.slice(property.cardinality.indexOf("..") + 2);
                 sparql += `         sh:minCount ${min};\n`;
-                if (max != "*") sparql += `         sh:maxCount ${max};\n`;
+                if (max != "*" && max != "n") sparql += `         sh:maxCount ${max};\n`;
             } else {
                 sparql += `         sh:minCount ${property.cardinality};\n`;
                 sparql += `         sh:maxCount ${property.cardinality};\n`;
@@ -884,13 +889,16 @@ async function uploadTurtleAllegrograph(endpointURL, username, password, graphUR
     // Error management
     if (!response.ok) {
         const errorText = await response.text();
+        const errorCoord = errorText.slice(errorText.indexOf("["), errorText.indexOf("]"));
 
         if (errorText.includes("[line:") && errorText.includes("col:")) {
-            const lines = turtleString.split("/n");
-            const lineNb = parseInt(errorText.slice(errorText.indexOf("[line: " + 7), errorText.indexOf(", col: ")));
+            const lines = turtleString.split("\n");
+            const lineNb = parseInt(errorCoord.slice(errorCoord.indexOf("[line: ") + 7, errorCoord.indexOf(", col: "))) - 1;
             console.log(turtleString);
-            alert("Error in the following line while parsing SHACL string:\n" + lines[lineNb]);
+            alert("Error in the following line while parsing SHACL string (" + errorCoord + "):\n" + lines[lineNb]);
         } else throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+    } else {
+        alert("Your model has correctly been updated, you can know reload the page to acknowledge your modifications");
     }
 }
 
@@ -923,13 +931,16 @@ async function uploadTurtleFuseki(endpointURL, username, password, graphURI, tur
     // Error management
     if (!response.ok) {
         const errorText = await response.text();
+        const errorCoord = errorText.slice(errorText.indexOf("["), errorText.indexOf("]"));
 
         if (errorText.includes("[line:") && errorText.includes("col:")) {
-            const lines = turtleString.split("/n");
-            const lineNb = parseInt(errorText.slice(errorText.indexOf("[line: " + 7), errorText.indexOf(", col: ")));
+            const lines = turtleString.split("\n");
+            const lineNb = parseInt(errorCoord.slice(errorCoord.indexOf("[line: ") + 7, errorCoord.indexOf(", col: "))) - 1;
             console.log(turtleString);
-            alert("Error in the following line while parsing SHACL string:\n" + lines[lineNb]);
+            alert("Error in the following line while parsing SHACL string (" + errorCoord + "):\n" + lines[lineNb]);
         } else throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+    } else {
+        alert("Your model has correctly been updated, you can know reload the page to acknowledge your modifications");
     }
 }
 
@@ -973,13 +984,16 @@ async function uploadTurtleGraphDB(endpointURL, username, password, graphURI, tu
     // Error management
     if (!response.ok) {
         const errorText = await response.text();
+        const errorCoord = errorText.slice(errorText.indexOf("["), errorText.indexOf("]"));
 
         if (errorText.includes("[line:") && errorText.includes("col:")) {
-            const lines = turtleString.split("/n");
-            const lineNb = parseInt(errorText.slice(errorText.indexOf("[line: " + 7), errorText.indexOf(", col: ")));
+            const lines = turtleString.split("\n");
+            const lineNb = parseInt(errorCoord.slice(errorCoord.indexOf("[line: ") + 7, errorCoord.indexOf(", col: "))) - 1;
             console.log(turtleString);
-            alert("Error in the following line while parsing SHACL string:\n" + lines[lineNb]);
+            alert("Error in the following line while parsing SHACL string (" + errorCoord + "):\n" + lines[lineNb]);
         } else throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+    } else {
+        alert("Your model has correctly been updated, you can know reload the page to acknowledge your modifications");
     }
 }
 
@@ -1158,13 +1172,14 @@ function keydownHandler(evt) {
 
     // Cancel key
     if (evt.key == "Escape") resetSelection();
+    if (evt.key == " ") evt.preventDefault();
 
     // If nothing is selected: Normal mmode
     if (selected.length == 0) {
         // Add a new box
-        if (evt.key == "c") createBox();
+        if (evt.key == "b") createBox();
         // Add a new link
-        if (evt.key == "r") MODE = CREATE_LINK;
+        if (evt.key == "l") MODE = CREATE_LINK;
         // Log the sparql
         if (evt.key == "P") console.log(toSPARQL());
         // Fit the zoom
