@@ -33,11 +33,11 @@ var offsetX = 0;
 var offsetY = 0;
 
 // Physic constants
-var boxesRepulsion = 200000;
+var boxesRepulsion = 20000;
 var linksAttraction = 0.02;
 var linksRestLength = 500;
 var speedLimit = 0.2;
-var velocityDamping = 0.05;
+var velocityDamping = 0.01;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////// TOOLING FUNCTIONS /////////////////////////////////////
@@ -389,7 +389,7 @@ function fitZoom() {
 
     // Calculate the appropriate scale between horizontal and vertical
     scale = Math.min(canvas.width / contentWidth, canvas.height / contentHeight);
-    scale *= 0.9; // Add a margin around
+    scale *= 0.8; // Add a margin around
 
     // Compute offset to center the content
     offsetX = (canvas.width - contentWidth * scale) / 2 - minX * scale;
@@ -734,23 +734,25 @@ function toSPARQL() {
         for (const property of properties) {
             // Information about the link (property)
             sparql += `     sh:property [\n`;
-            sparql += `         sh:path ${property.id};\n`;
-            sparql += `         sh:name "${property.predicate}";\n`;
+            if (property.id) sparql += `         sh:path ${property.id};\n`;
+            if (property.predicate) sparql += `         sh:name "${property.predicate}";\n`;
             // Depending on if the range (object) is a value or a class, it is not the same SHACL property: sh:datatype or sh:class
-            sparql += `         sh:${property.object.id.includes("xsd") ? "datatype" : "class"} ${property.object.id};\n`;
+            if (property.object?.id) sparql += `         sh:${property.object.id.includes("xsd") ? "datatype" : "class"} ${property.object.id};\n`;
             if (property.order) sparql += `         sh:order ${property.order};\n`;
 
             // Handling of the cardinality
             // Since the cardinality is the one of the object,
             // It has to be set on the subject property information
-            if ((property.cardinality + "").includes("..")) {
-                const min = property.cardinality.slice(0, property.cardinality.indexOf(".."));
-                const max = property.cardinality.slice(property.cardinality.indexOf("..") + 2);
-                sparql += `         sh:minCount ${min};\n`;
-                if (max != "*" && max != "n") sparql += `         sh:maxCount ${max};\n`;
-            } else {
-                sparql += `         sh:minCount ${property.cardinality};\n`;
-                sparql += `         sh:maxCount ${property.cardinality};\n`;
+            if (property.cardinality) {
+                if ((property.cardinality + "").includes("..")) {
+                    const min = property.cardinality.slice(0, property.cardinality.indexOf(".."));
+                    const max = property.cardinality.slice(property.cardinality.indexOf("..") + 2);
+                    sparql += `         sh:minCount ${min};\n`;
+                    if (max != "*" && max != "n") sparql += `         sh:maxCount ${max};\n`;
+                } else {
+                    sparql += `         sh:minCount ${property.cardinality};\n`;
+                    sparql += `         sh:maxCount ${property.cardinality};\n`;
+                }
             }
 
             // Closing the properties
@@ -1170,9 +1172,14 @@ function keydownHandler(evt) {
     // Look for all selected items, be their boxes or links
     const selected = boxes.filter((box) => box.selected).concat(links.filter((link) => link.selected));
 
+    // To avoid to accidentally run into streamlit default shortcut bindings
+    evt.stopPropagation();
+    evt.preventDefault();
+
     // Cancel key
     if (evt.key == "Escape") resetSelection();
     if (evt.key == " ") evt.preventDefault();
+    if (evt.key == "c") evt.preventDefault();
 
     // If nothing is selected: Normal mmode
     if (selected.length == 0) {
