@@ -709,27 +709,42 @@ function setCanvas(newCanvas) {
 function toSPARQL() {
     let sparql = "";
 
-    // Generate all "is a class" triples
-    for (const box of boxes) sparql += `base:${toCamelCase(box.name)} a owl:Class .\n`;
-    sparql += "\n";
+    // Make boxes unique based on URI, to avoid to have mulitple times the same class declared
+    const uniqueBoxes = [];
+    const haveBoxes = [];
+    for (const box of boxes) {
+        if (!haveBoxes.includes(box.id)) {
+            uniqueBoxes.push(box);
+            haveBoxes.push(box.id);
+        }
+    }
 
-    // Generate all "is a property" triples
-    for (const link of links) sparql += `base:${toCamelCase(link.predicate)} a owl:Property .\n`;
-    sparql += "\n";
+    // Make links unique based on URI, to avoid to have mulitple times the same property declared
+    const uniqueLinks = [];
+    const haveLinks = [];
+    for (const link of links) {
+        if (!haveLinks.includes(link.id)) {
+            uniqueLinks.push(link);
+            haveLinks.push(link.id);
+        }
+    }
 
     // Generate a NodeShape for each boxes (classes)
-    for (const box of boxes) {
+    for (const box of uniqueBoxes) {
+        // Find all links (properties) with this box (class) as subject
+        // Here we are not interested in links which have the box (class) as object
+        // Because the link (property) will in any case be listed in the subject box (class)
+        const properties = links.filter((link) => link.subject === box);
+
+        // If the class has no outgoing properties, nothing should be added
+        if (properties.length == 0) continue;
+
         // Information about the class itself
         const camelCaseName = toCamelCase(box.name);
         sparql += `base:${camelCaseName}_shape a sh:NodeShape;\n`;
         sparql += `     sh:targetClass ${box.id};\n`;
         sparql += `     sh:name "${box.name}";\n`;
         sparql += `\n`;
-
-        // Find all links (properties) with this box (class) as subject
-        // Here we are not interested in links which have the box (class) as object
-        // Because the link (property) will in any case be listed in the subject box (class)
-        const properties = links.filter((link) => link.subject === box);
 
         for (const property of properties) {
             // Information about the link (property)
